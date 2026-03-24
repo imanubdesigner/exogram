@@ -102,7 +102,7 @@ const loadWaitlist = async (page = 1) => {
     hasMore.value = !!response.next
     currentPage.value = page
   } catch {
-    ui.showNotification(i18n.t('community_waitlist.error_generic'), 'error')
+    ui.showError(i18n.t('community_waitlist.error_generic'))
   } finally {
     loading.value = false
   }
@@ -129,7 +129,7 @@ const donateInvitation = async (entry) => {
   donating.value[entry.id] = true
   try {
     const result = await authService.activateWaitlistEntry(entry.id)
-    ui.showNotification(i18n.t('community_waitlist.success_msg'), 'success')
+    ui.showSuccess(i18n.t('community_waitlist.success_msg'))
     if (typeof result?.invitations_remaining === 'number') {
       invitationsRemaining.value = result.invitations_remaining
     } else if (typeof invitationsRemaining.value === 'number') {
@@ -138,7 +138,7 @@ const donateInvitation = async (entry) => {
     // Eliminar la tarjeta de la lista actual
     entries.value = entries.value.filter(e => e.id !== entry.id)
   } catch (err) {
-    ui.showNotification(err.message || i18n.t('community_waitlist.error_generic'), 'error')
+    ui.showError(err.message || i18n.t('community_waitlist.error_generic'))
   } finally {
     donating.value[entry.id] = false
   }
