@@ -33,6 +33,7 @@ backend/staticfiles/
 .env
 # Local env overrides (must never be committed)
 .env.local
+docker-compose.override.yml
 .env.production
 .env.*.local
 venv/

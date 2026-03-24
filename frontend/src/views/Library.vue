@@ -15,7 +15,7 @@
     <section class="notes-container">
       <!-- Widget de Procesamiento de Conexiones: siempre visible cuando hay embeddings pendientes -->
       <div
-        v-if="(isProcessing || justFinishedProcessing) && viewHighlights.length > 0"
+        v-if="(isProcessing || justFinishedProcessing) && highlightsStore.allHighlights.length > 0"
         class="processing-widget"
         :class="{'processing-done': justFinishedProcessing}"
       >
