@@ -155,6 +155,40 @@
           </div>
         </div>
       </div>
+      <!-- Modal eliminar cuenta -->
+      <div v-if="showDeleteModal" class="modal-backdrop" @click.self="closeDeleteModal">
+        <div class="modal" role="dialog" aria-modal="true">
+          <header class="modal-header login-modal-header">
+            <span class="brand">{{ i18n.t('profile.delete_account_modal.title') }}</span>
+            <button class="modal-close" :aria-label="i18n.t('profile.close_modal_aria')" @click="closeDeleteModal">✕</button>
+          </header>
+          <div class="modal-body">
+            <p class="modal-hint delete-warning">{{ i18n.t('profile.delete_account_modal.warning') }}</p>
+            <form class="login-form compact" @submit.prevent="handleDeleteAccount">
+              <label class="delete-confirm-label">{{ i18n.t('profile.delete_account_modal.confirm_label') }}</label>
+              <input
+                v-model="deleteConfirmText"
+                type="text"
+                :placeholder="i18n.t('profile.delete_account_modal.confirm_placeholder')"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <div class="modal-footer">
+                <button type="button" class="btn-enter" @click="closeDeleteModal">
+                  {{ i18n.t('profile.delete_account_modal.cancel') }}
+                </button>
+                <button
+                  type="submit"
+                  class="btn-enter btn-enter-danger"
+                  :disabled="deletingAccount || deleteConfirmText !== 'DELETE_MY_ACCOUNT'"
+                >
+                  {{ deletingAccount ? i18n.t('profile.delete_account_modal.deleting') : i18n.t('profile.delete_account_modal.btn') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Bio -->
@@ -264,10 +298,13 @@
       </div>
     </section>
 
-    <!-- Logout -->
+    <!-- Logout + Delete account -->
     <section class="profile-section profile-footer">
       <button class="btn-option btn-logout" @click="handleLogout">
         {{ i18n.t('profile.logout') }}
+      </button>
+      <button class="btn-option btn-delete-account" @click="openDeleteModal">
+        {{ i18n.t('profile.delete_account') }}
       </button>
     </section>
 
@@ -304,6 +341,9 @@ const newPassword = ref('')
 const newPasswordConfirm = ref('')
 const updatingCredentials = ref(false)
 const initialBio = ref('')
+const showDeleteModal = ref(false)
+const deleteConfirmText = ref('')
+const deletingAccount = ref(false)
 
 const donationAlias = import.meta.env.VITE_DONATION_ALIAS || ''
 
@@ -433,11 +473,15 @@ const closeIntegrationsModal = () => {
 }
 
 const isAnyModalOpen = computed(
-  () => showCredentialsModal.value || showIntegrationsModal.value
+  () => showCredentialsModal.value || showIntegrationsModal.value || showDeleteModal.value
 )
 
 const handleProfileEscape = (event) => {
   if (event.key !== 'Escape') return
+  if (showDeleteModal.value) {
+    closeDeleteModal()
+    return
+  }
   if (showIntegrationsModal.value) {
     closeIntegrationsModal()
     return
@@ -626,6 +670,31 @@ const exportJSON = async () => {
     uiStore.showError(i18n.t('profile.feedback.export_json_error'))
   } finally {
     exporting.value = false
+  }
+}
+
+const openDeleteModal = () => {
+  deleteConfirmText.value = ''
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  deleteConfirmText.value = ''
+}
+
+const handleDeleteAccount = async () => {
+  if (deleteConfirmText.value !== 'DELETE_MY_ACCOUNT') return
+  deletingAccount.value = true
+  try {
+    await authService.deleteAccount()
+    sessionStorage.removeItem('auth_hint')
+    sessionStorage.removeItem('must_change_credentials')
+    window.location.href = '/'
+  } catch (err) {
+    logger.error('Error deleting account:', err)
+    uiStore.showError(i18n.t('profile.feedback.delete_account_error'))
+    deletingAccount.value = false
   }
 }
 
@@ -1339,11 +1408,42 @@ input:checked + .slider:before {
   padding-top: var(--space-xl);
   margin-top: var(--space-xl);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn-logout {
   color: var(--text-tertiary);
+}
+
+.btn-delete-account {
+  color: color-mix(in srgb, var(--text-tertiary) 70%, #7a2f2f 30%);
+}
+
+.btn-delete-account:hover {
+  color: #7a2f2f;
+  border-color: color-mix(in srgb, var(--border-subtle) 50%, #7a2f2f 50%);
+}
+
+.delete-warning {
+  color: color-mix(in srgb, var(--text-tertiary) 50%, #7a2f2f 50%) !important;
+}
+
+.delete-confirm-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-bottom: calc(var(--space-xs) * -0.5);
+}
+
+.btn-enter-danger {
+  border-color: color-mix(in srgb, var(--text-tertiary) 50%, #7a2f2f 50%) !important;
+  color: color-mix(in srgb, var(--text-tertiary) 50%, #7a2f2f 50%) !important;
+}
+
+.btn-enter-danger:hover:not(:disabled) {
+  border-color: #7a2f2f !important;
+  color: #7a2f2f !important;
+  background: transparent !important;
 }
 
 /* Save feedback */

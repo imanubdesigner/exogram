@@ -216,6 +216,16 @@ export const authService = {
     },
 
     /**
+     * Elimina permanentemente la cuenta del usuario autenticado.
+     */
+    async deleteAccount() {
+        return apiRequest('/me/delete/', {
+            method: 'DELETE',
+            body: JSON.stringify({ confirm: 'DELETE_MY_ACCOUNT' })
+        })
+    },
+
+    /**
      * Persiste flags de sesión no sensibles.
      */
     saveUser(user) {
