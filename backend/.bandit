@@ -1,0 +1,3 @@
+# B101: assert usado en tests — falso positivo esperado
+# B311: random estándar — no se usa para criptografía en este proyecto
+skips: ['B101', 'B311']

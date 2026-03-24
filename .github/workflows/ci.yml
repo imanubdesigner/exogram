@@ -1,0 +1,225 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/ci.yml'
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '20'
+
+# Cancel in-progress runs for the same branch/PR to avoid wasting minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ── Job 1 ────────────────────────────────────────────────────────────────────
+  # Fast checks that require no services. Runs in parallel with `frontend`.
+  # `backend-test` only starts if this job passes, so DB/Redis are never spun
+  # up for code that fails to lint or has known CVEs.
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend — Lint & Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install lint tools
+        run: pip install flake8 isort bandit pip-audit
+
+      - name: flake8
+        working-directory: backend
+        run: flake8 .
+
+      - name: isort
+        working-directory: backend
+        run: isort --check-only .
+
+      - name: bandit (SAST)
+        working-directory: backend
+        run: bandit -r . -x ./migrations,./smoke_tests -ll -ii -c .bandit
+
+      - name: pip-audit (CVE check)
+        working-directory: backend
+        run: pip-audit -r requirements.txt
+
+
+  # ── Job 2 ────────────────────────────────────────────────────────────────────
+  # Full test suite with real services. Runs only after lint passes.
+  # ─────────────────────────────────────────────────────────────────────────────
+  backend-test:
+    name: Backend — Tests & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: backend-lint
+
+    env:
+      DATABASE_URL: postgres://exogram:test_password@localhost:5432/exogram_test
+      SECRET_KEY: test-secret-key-not-for-production-must-be-at-least-50-chars-long-xyz
+      DEBUG: 'True'
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      DJANGO_SETTINGS_MODULE: exogram.settings_ci
+      CELERY_BROKER_URL: redis://localhost:6379/0
+      CELERY_RESULT_BACKEND: redis://localhost:6379/0
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: exogram_test
+          POSTGRES_USER: exogram
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U exogram"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Enable pgvector extension
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U exogram -d exogram_test \
+            -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Django system checks
+        working-directory: backend
+        run: python manage.py check
+
+      - name: Detect unapplied migrations
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Apply migrations
+        working-directory: backend
+        run: python manage.py migrate --noinput
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: |
+          coverage run --source='.' manage.py test --verbosity=2 --noinput
+          coverage report --fail-under=70
+          coverage xml -o coverage.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 14
+
+
+  # ── Job 3 ────────────────────────────────────────────────────────────────────
+  # Fully independent of the backend. Runs in parallel with `backend-lint`.
+  # ─────────────────────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend — Audit, Lint, Build & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: npm audit (CVE check)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      - name: ESLint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Tests (Vitest)
+        working-directory: frontend
+        run: npm test
+
+
+  # ── Job 4 ────────────────────────────────────────────────────────────────────
+  # Single status gate for branch protection rules. Configure this job name
+  # ("CI — All checks passed") as the required check in GitHub Settings →
+  # Branches → Branch protection rules, instead of listing individual jobs.
+  # The `if: always()` ensures this runs even when upstream jobs fail, so
+  # the gate always reports a final verdict.
+  # ─────────────────────────────────────────────────────────────────────────────
+  ci:
+    name: CI — All checks passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [backend-lint, backend-test, frontend]
+    if: always()
+
+    steps:
+      - name: Verify all jobs succeeded
+        env:
+          BACKEND_LINT: ${{ needs.backend-lint.result }}
+          BACKEND_TEST: ${{ needs.backend-test.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+        run: |
+          echo "backend-lint : $BACKEND_LINT"
+          echo "backend-test : $BACKEND_TEST"
+          echo "frontend     : $FRONTEND"
+          if [[ "$BACKEND_LINT" != "success" || \
+                "$BACKEND_TEST" != "success" || \
+                "$FRONTEND"     != "success" ]]; then
+            echo "One or more CI checks failed or were cancelled."
+            exit 1
+          fi
+          echo "All CI checks passed."

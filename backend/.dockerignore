@@ -1,0 +1,39 @@
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ONNX model cache (~470MB — downloaded at runtime by Celery workers)
+models_cache/
+
+# Tests (not needed in production image)
+smoke_tests/
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+.dockerenv
+
+# Coverage / test artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/

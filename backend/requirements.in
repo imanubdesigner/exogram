@@ -1,0 +1,60 @@
+# requirements.in — fuente de verdad para pip-compile.
+#
+# Para regenerar requirements.txt con versiones y hashes exactos:
+#
+#   pip install pip-tools
+#   pip-compile requirements.in --generate-hashes -o requirements.txt
+#
+# Para actualizar una dependencia específica:
+#
+#   pip-compile requirements.in --upgrade-package Django -o requirements.txt
+#
+# Para verificar que requirements.txt está sincronizado con este archivo:
+#
+#   pip-compile --dry-run requirements.in
+
+# Web framework
+Django>=5.2.12,<6
+djangorestframework>=3.15,<4
+django-cors-headers>=4.6,<5
+
+# Database
+psycopg2>=2.9,<3
+pgvector>=0.3,<1
+
+# Auth
+djangorestframework-simplejwt>=5.4,<6
+
+# Queue
+celery>=5.4,<6
+django-celery-beat>=2.9,<3
+redis>=5,<6
+
+# Config
+python-decouple>=3.8,<4
+
+# Monitoring
+sentry-sdk>=2,<3
+
+# Images
+Pillow>=12.1.1,<13
+
+# HTTP
+requests>=2.32,<3
+
+# ML / embeddings
+onnxruntime>=1.20,<2
+numpy>=1.26,<2
+tokenizers>=0.21,<1
+scikit-learn>=1.5,<2
+
+# Parsing
+python-dateutil>=2.9,<3
+feedparser>=6,<7
+beautifulsoup4>=4.12,<5
+
+# Server
+gunicorn>=23,<24
+
+# Test coverage
+coverage>=7,<8

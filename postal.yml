@@ -1,0 +1,48 @@
+version: 2
+
+postal:
+  # Web UI y tracking se sirven detrás de Caddy en el subdominio público.
+  web_hostname: <%= "postal.#{ENV.fetch("APP_DOMAIN")}" %>
+  web_protocol: https
+  smtp_hostname: <%= "postal.#{ENV.fetch("APP_DOMAIN")}" %>
+  signing_key_path: /config/signing.key
+
+web_server:
+  bind_address: 0.0.0.0
+  default_port: 5000
+
+main_db:
+  host: <%= ENV.fetch("POSTAL_DB_HOST", "postal-mariadb") %>
+  port: <%= ENV.fetch("POSTAL_DB_PORT", "3306").to_i %>
+  username: <%= ENV.fetch("POSTAL_DB_USER", "postal") %>
+  password: <%= ENV.fetch("POSTAL_DB_PASSWORD") %>
+  database: <%= ENV.fetch("POSTAL_DB_NAME", "postal") %>
+
+message_db:
+  host: <%= ENV.fetch("POSTAL_DB_HOST", "postal-mariadb") %>
+  port: <%= ENV.fetch("POSTAL_DB_PORT", "3306").to_i %>
+  username: <%= ENV.fetch("POSTAL_DB_USER", "postal") %>
+  password: <%= ENV.fetch("POSTAL_DB_PASSWORD") %>
+  database_name_prefix: postal
+
+smtp_server:
+  # El listener principal queda en 25; Compose lanza una segunda instancia con
+  # PORT=587 para submission autenticado dentro del mismo servicio Postal.
+  bind_address: 0.0.0.0
+  default_port: 25
+
+# Postal v3 documenta la mayor parte de la configuración sensible vía variables
+# de entorno. Para compartir el Redis existente sin colisionar con la app, el
+# servicio exporta REDIS_URL=redis://redis:6379/1.
+
+dns:
+  mx_records:
+    - postal.exogram.app
+  spf_include: postal.exogram.app
+  return_path_domain: rp.postal.exogram.app
+  route_domain: routes.postal.exogram.app
+  track_domain: track.postal.exogram.app
+
+rails:
+  environment: production
+  secret_key: <%= ENV.fetch("POSTAL_RAILS_SECRET_KEY") %>

@@ -1,0 +1,8 @@
+# Script de ayuda para desarrollo local — NO es el marcador /. dockerenv de Docker.
+# Este archivo NO se copia a las imágenes Docker (excluido vía .dockerignore).
+#
+# Sourcear manualmente antes de correr comandos que requieran estas variables:
+#   source backend/.dockerenv
+#
+# Controla el comportamiento de la librería `transformers` de HuggingFace:
+export TRANSFORMERS_OFFLINE=0   # 0 = permite descarga online del modelo ONNX al primer uso

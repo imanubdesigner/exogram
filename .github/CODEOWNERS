@@ -1,0 +1,26 @@
+# CODEOWNERS — auto-assigns reviewers by area
+# Syntax: <pattern> <owner> [<owner> ...]
+# Owners can be GitHub usernames or teams (@org/team-name)
+# The last matching rule takes precedence
+
+# Default: project maintainer reviews everything
+*                          @matzalazar
+
+# Backend — Django apps and configuration
+/backend/                  @matzalazar
+
+# Frontend — Vue 3 app
+/frontend/                 @matzalazar
+
+# Infrastructure & DevOps — Docker, CI/CD, Caddy
+/docker-compose*.yml       @matzalazar
+/.github/                  @matzalazar
+/Caddyfile                 @matzalazar
+/scripts/                  @matzalazar
+
+# Documentation
+/docs/                     @matzalazar
+
+# Security-sensitive files — require explicit maintainer review
+/backend/accounts/         @matzalazar
+SECURITY.md                @matzalazar

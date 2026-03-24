@@ -1,0 +1,57 @@
+{
+    email {$ACME_EMAIL}
+}
+
+postal.{$APP_DOMAIN} {
+    tls {$ACME_EMAIL}
+    reverse_proxy postal:5000
+}
+
+www.{$APP_DOMAIN} {
+    redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    # Security headers globales para toda la app.
+    # Ajustar img-src si se agregan CDNs externos de portadas de libros.
+    header {
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://covers.openlibrary.org; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        # Eliminar Server header para no exponer versión de Caddy
+        -Server
+    }
+
+    handle /static/* {
+        uri strip_prefix /static
+        root * /srv/static
+        file_server
+    }
+
+    handle /media/* {
+        uri strip_prefix /media
+        root * /srv/media
+        file_server
+    }
+
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # ⚠️ Si ADMIN_URL en backend/.env cambia (p.ej. a "mi-panel-secreto/"),
+    # actualizar este handle para que coincida. Sin este cambio, Caddy no
+    # routea el nuevo path al backend y el admin queda inaccesible.
+    handle /admin* {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        root * /srv/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+}

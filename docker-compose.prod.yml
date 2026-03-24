@@ -1,0 +1,109 @@
+# docker-compose.prod.yml
+#
+# Override de producción. Usar con:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Diferencias con la configuración base (dev):
+# - Puertos de DB y Redis restringidos a 127.0.0.1
+# - Sin bind-mounts de código (usa la imagen construida)
+# - FORCE_HTTPS habilitado
+# - Caddy termina TLS y obtiene certificados ACME automáticamente
+# - Flower protegido detrás de localhost
+# - Sin dev server de Vite (frontend debe servirse como build estático)
+
+services:
+  db:
+    # Restringir a loopback — acceso solo desde el host y la red Docker interna.
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  postal:
+    # profiles: [] sobreescribe el ["mail"] del compose base para que Postal
+    # levante siempre en producción sin necesidad de --profile mail.
+    profiles: []
+    # SMTP directo: Hetzner suele requerir aprobación explícita para abrir 25/tcp.
+    # 587 expone submission autenticado para clientes y automatizaciones.
+    ports:
+      - "25:25"
+      - "587:587"
+
+  postal-mariadb:
+    profiles: []
+    # Mantener la DB de Postal en loopback, consistente con el patrón de datastores.
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  backend:
+    # Sobreescribe el comando base para forzar gunicorn en lugar de runserver
+    command: ["./start-web.sh"]
+    # Restringir a loopback: Caddy accede vía red Docker interna (sin necesidad de
+    # port binding), pero el health check del deploy lo necesita desde el host.
+    ports:
+      - "127.0.0.1:8000:8000"
+    # Sin bind-mount de código: usar la imagen construida.
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      - SENTRY_DSN=${SENTRY_DSN}
+      - FORCE_HTTPS=True
+
+  celery:
+    # models_cache persiste el modelo ONNX (~470MB) entre reinicios del contenedor.
+    # Sin este volumen, cada restart descarga el modelo desde HuggingFace.
+    volumes:
+      - models_cache:/app/models_cache
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SENTRY_DSN=${SENTRY_DSN}
+
+  celery-beat:
+    volumes: []
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SENTRY_DSN=${SENTRY_DSN}
+
+  flower:
+    ports:
+      - "127.0.0.1:5555:5555"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend/dist:/srv/frontend/dist:ro
+      - static_data:/srv/static:ro
+      - media_data:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    depends_on:
+      - backend
+
+  # Frontend: en producción debe servirse como build estático (Nginx, CDN, etc.)
+  # El build se genera localmente/CI en ./frontend/dist y Caddy lo sirve.
+  frontend:
+    profiles:
+      - dev-only
+
+volumes:
+  static_data:
+  media_data:
+  caddy_data:
+  caddy_config:
+  models_cache:

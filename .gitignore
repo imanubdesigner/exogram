@@ -1,0 +1,90 @@
+# Exogram
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+backend/media/
+backend/staticfiles/
+
+# Environment
+.env
+# Local env overrides (must never be committed)
+.env.local
+.env.production
+.env.*.local
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+dist-ssr/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Exogram generated caches
+# ONNX model cache (~480MB) and tokenizer artifacts generated locally.
+# Must not be committed; see ADR 0001 (ONNX lazy loading).
+models_cache/
+# Cleanup 2026-03-08: removed legacy dummy_data/ artifact from repository.
+# Personal Kindle exports for local seeding only (may contain private reading data).
+clippings_examples/
+otros_txt/
+
+# Coverage and test artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+.pytest_cache/
+pytestdebug.log
+
+# SQLite local databases (dev/test leftovers)
+*.sqlite3
+*.sqlite3-journal
+*.sqlite
+
+# ONNX binaries (safety net in case cache path changes)
+*.onnx
+gh-secrets.env
+.claude/

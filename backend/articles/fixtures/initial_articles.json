@@ -1,0 +1,54 @@
+[
+    {
+        "model": "articles.article",
+        "pk": 1,
+        "fields": {
+            "slug": "ingenieria-de-la-soledad",
+            "title": "Ingeniería de la Soledad",
+            "subtitle": "Por qué eliminamos el botón de 'Me Gusta'",
+            "content": "## Por qué Exogram no tiene likes\n\nLos likes son la piedra angular de la economía de la atención. Cada vez que recibís un like, tu cerebro libera dopamina — la misma sustancia que se activa con las máquinas tragamonedas.\n\n### El problema\n\nLas redes sociales tradicionales diseñan sus interfaces para maximizar el *engagement*, no la conexión genuina. Los likes crean:\n\n- **Validación externa**: Tu valor como creador se mide en números, no en ideas.\n- **Autocensura**: Publicás lo que genera likes, no lo que realmente pensás.\n- **Ansiedad social**: Comparación constante con otros perfiles.\n\n### Nuestra decisión\n\nEn Exogram, la única métrica que importa es **la calidad de tus ideas**. No hay likes, no hay contadores de seguidores, no hay notificaciones de vanidad.\n\nLa conexión entre lectores se basa en **similitud semántica**: si tus subrayados se parecen a los de otra persona, es porque comparten intereses profundos, no porque una publicación se volvió viral.\n\n### Referencias\n\n- Alter, A. (2017). *Irresistible: The Rise of Addictive Technology*.\n- Harris, T. (2016). *How Technology is Hijacking Your Mind*.",
+            "placement": "onboarding",
+            "order": 1,
+            "is_published": true
+        }
+    },
+    {
+        "model": "articles.article",
+        "pk": 2,
+        "fields": {
+            "slug": "matematicas-de-la-empatia",
+            "title": "Matemáticas de la Empatía",
+            "subtitle": "Cómo funciona el algoritmo de afinidad",
+            "content": "## Vectores, Cosenos y Almas Gemelas\n\nCuando subrayás una frase en tu Kindle, estás expresando algo sobre vos: tus intereses, tus inquietudes, tu curiosidad. Exogram convierte esas ideas en **vectores matemáticos** de 384 dimensiones.\n\n### ¿Qué es un embedding?\n\nUn embedding es una representación numérica del significado de un texto. Dos frases sobre el mismo tema tendrán vectores similares, incluso si usan palabras diferentes.\n\nPor ejemplo:\n- *\"La ciencia no es una colección de hechos\"* → Vector A\n- *\"El método científico es un proceso de descubrimiento\"* → Vector B\n\nEstos vectores estarán cerca en el espacio de 384 dimensiones.\n\n### Similitud del Coseno\n\nPara medir qué tan parecidos son dos vectores, usamos la **similitud del coseno**: el ángulo entre ambos vectores. Si el ángulo es pequeño (coseno cercano a 1), las ideas son similares.\n\n### Tu centroide\n\nCalculamos el promedio de todos tus embeddings para crear tu **centroide**: un vector que representa la esencia de tus intereses. Cuando buscamos \"almas gemelas intelectuales\", comparamos centroides.\n\n### Sin caja negra\n\nA diferencia de los algoritmos de recomendación de las grandes tech, el nuestro es **completamente transparente**: similitud del coseno sobre embeddings locales. Sin datos enviados a la nube, sin perfilamiento comercial.",
+            "placement": "discovery",
+            "order": 1,
+            "is_published": true
+        }
+    },
+    {
+        "model": "articles.article",
+        "pk": 3,
+        "fields": {
+            "slug": "ia-soberana",
+            "title": "IA Soberana",
+            "subtitle": "Moderación sin enviar datos a la nube",
+            "content": "## Tu texto no sale de nuestro servidor\n\nCuando escribís un comentario en Exogram, pasa por un filtro de moderación automático. Pero a diferencia de otras plataformas, **tus palabras nunca se envían a OpenAI, Anthropic, ni a ninguna API de IA externa**.\n\n### Cómo funciona\n\nNuestro sistema de moderación usa:\n\n1. **Detección de patrones**: Expresiones conocidas de toxicidad, spam y discurso de odio.\n2. **Heurísticas de comportamiento**: Exceso de mayúsculas, puntuación agresiva, repetición.\n3. **Clasificación local** (futuro): Un modelo de ML ligero que corre en nuestro propio servidor.\n\n### Tres niveles de resultado\n\n- **Score < 0.3**: Aprobado automáticamente ✅\n- **Score 0.3 - 0.7**: Revisión pendiente ⏳\n- **Score > 0.7**: Rechazado automáticamente 🚫\n\n### Privacy by Design\n\nEsta decisión tiene un costo: nuestro filtro no es tan sofisticado como GPT-4. Pero preferimos un filtro imperfecto a entregar los textos de nuestra comunidad a empresas que los usarán para entrenar sus modelos.\n\nTu privacidad no es una feature. Es un principio no negociable.",
+            "placement": "comments",
+            "order": 1,
+            "is_published": true
+        }
+    },
+    {
+        "model": "articles.article",
+        "pk": 4,
+        "fields": {
+            "slug": "integracion-respetuosa",
+            "title": "Integración Respetuosa",
+            "subtitle": "Scraping ético y throttling con Goodreads",
+            "content": "## Leemos tu feed, pero con respeto\n\nExogram puede sincronizar tu progreso de lectura desde Goodreads para sugerirte conexiones (\"María también está leyendo X\"). Así funciona:\n\n### Lo que hacemos\n\n- Leemos tu feed RSS público de Goodreads (solo lectura).\n- Extraemos: títulos de libros, autores, y estado (leyendo/terminado).\n- **No extraemos** reviews, datos personales, ni información de otros usuarios.\n\n### Lo que NO hacemos\n\n- No enviamos datos de vuelta a Goodreads.\n- No hacemos scraping de perfiles privados.\n- No almacenamos tu URL de Goodreads de forma permanente si la eliminás.\n\n### Throttling ético\n\nPara no sobrecargar los servidores de Goodreads:\n\n- Esperamos **5 segundos** entre cada request.\n- Máximo **1 sincronización por hora** por usuario.\n- User-Agent identificable: `Exogram/1.0 (ethical-scraping)`.\n\n### Tu control total\n\n- Podés desactivar la sincronización cuando quieras.\n- Podés borrar todos los datos importados desde tu perfil.\n- La sincronización es **completamente opcional**.",
+            "placement": "import",
+            "order": 1,
+            "is_published": true
+        }
+    }
+]

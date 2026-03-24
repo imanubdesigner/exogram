@@ -1,0 +1,244 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    # pg_stat_statements requiere shared_preload_libraries al arranque del
+    # servidor; no alcanza con CREATE EXTENSION si esto no está activo.
+    command: [ "postgres", "-c", "shared_preload_libraries=pg_stat_statements" ]
+    restart: unless-stopped
+    environment:
+      # Las variables se leen del .env raíz (cargado automáticamente por Docker Compose).
+      # En producción, el deploy workflow inyecta estos valores desde GitHub Secrets.
+      # En desarrollo, definilos en un .env en la raíz del proyecto.
+      POSTGRES_DB: ${POSTGRES_DB:-exogram}
+      POSTGRES_USER: ${POSTGRES_USER:-exogram}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    # Puerto solo expuesto en docker-compose.prod.yml (127.0.0.1:5432).
+    # En dev: docker compose exec db psql -U exogram
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-exogram}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # maxmemory 256MB + LRU eviction: previene que Redis consuma RAM sin límite.
+    # En producción ajustar según carga real (monitorear con INFO memory).
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # Puerto solo expuesto en docker-compose.prod.yml (127.0.0.1:6379).
+    # En dev: docker compose exec redis redis-cli
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postal-mariadb:
+    image: mariadb:10.11
+    restart: unless-stopped
+    # Levantar Postal solo cuando se necesita: docker compose --profile mail up
+    profiles: ["mail"]
+    environment:
+      MARIADB_ROOT_PASSWORD: ${POSTAL_DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: postal
+      MARIADB_USER: postal
+      MARIADB_PASSWORD: ${POSTAL_DB_PASSWORD}
+    volumes:
+      - postal_db_data:/var/lib/mysql
+
+  postal:
+    image: ghcr.io/postalserver/postal:latest
+    restart: unless-stopped
+    # Levantar Postal solo cuando se necesita: docker compose --profile mail up
+    profiles: ["mail"]
+    depends_on:
+      - postal-mariadb
+      - redis
+    volumes:
+      - postal-config:/config
+      - ./postal.yml:/config/postal.yml.tpl:ro
+    environment:
+      - POSTAL_CONFIG_FILE=/config/postal.yml
+      - POSTAL_CONFIG_FILE_PATH=/config/postal.yml
+      - WAIT_FOR_TARGETS=postal-mariadb:3306 redis:6379
+      - WAIT_FOR_TIMEOUT=60
+      - APP_DOMAIN=${APP_DOMAIN}
+      - POSTAL_DB_HOST=postal-mariadb
+      - POSTAL_DB_PORT=3306
+      - POSTAL_DB_NAME=postal
+      - POSTAL_DB_USER=postal
+      - POSTAL_DB_PASSWORD=${POSTAL_DB_PASSWORD}
+      - BIND_ADDRESS=0.0.0.0
+      - POSTAL_RAILS_SECRET_KEY=${POSTAL_RAILS_SECRET_KEY}
+      - REDIS_URL=redis://redis:6379/1
+    # La imagen oficial requiere web, worker y SMTP como procesos separados.
+    # Como este stack expone un único servicio Postal, los arrancamos juntos y
+    # persistimos la signing.key dentro del volumen /config.
+    command:
+      - /bin/bash
+      - -ec
+      - |
+        ruby -rerb -e 'print ERB.new(File.read("/config/postal.yml.tpl")).result' > /config/postal.yml
+        if [ ! -f /config/signing.key ]; then
+          ruby -ropenssl -e 'key = OpenSSL::PKey::RSA.new(2048); File.write("/config/signing.key", key.to_pem)'
+          chmod 600 /config/signing.key
+        fi
+        postal worker &
+        worker_pid=$$!
+        postal smtp-server &
+        smtp_pid=$$!
+        PORT=587 postal smtp-server &
+        submission_pid=$$!
+        postal web-server &
+        web_pid=$$!
+        trap 'kill $$worker_pid $$smtp_pid $$submission_pid $$web_pid; wait $$worker_pid $$smtp_pid $$submission_pid $$web_pid' TERM INT
+        wait -n $$worker_pid $$smtp_pid $$submission_pid $$web_pid
+        exit_code=$$?
+        kill $$worker_pid $$smtp_pid $$submission_pid $$web_pid 2>/dev/null || true
+        wait $$worker_pid $$smtp_pid $$submission_pid $$web_pid 2>/dev/null || true
+        exit $$exit_code
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    # Production: Use gunicorn with multiple workers (4 workers × 2 threads = 8 concurrent requests)
+    # Development: Uncomment the line below and comment gunicorn command for auto-reload
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --insecure"
+    volumes:
+      - ./backend:/app
+      - ./models_cache:/app/models_cache
+    # Puerto solo definido en docker-compose.prod.yml (127.0.0.1:8000).
+    # En dev el backend es accesible via red Docker interna o ejecutando
+    # el servidor directamente fuera de Docker.
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      # SENTRY_DSN vacío => Sentry deshabilitado (no-op). En producción, inyectar
+      # el DSN desde un secrets manager; no commitear secretos al repo.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    mem_limit: 2g  # Web API sin precarga ONNX; embeddings se calculan en workers Celery
+
+  celery:
+    build: ./backend
+    restart: unless-stopped
+    # prefork pool — el más robusto para tareas CPU-intensivas como embeddings.
+    # concurrency=1: un worker en lugar de 2 para ahorrar 1.5GB de RAM en el deploy inicial.
+    command: celery -A exogram worker -l info --concurrency=1
+    volumes:
+      - ./backend:/app
+      - ./models_cache:/app/models_cache
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      # Worker y Flower comparten este broker URL.
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${REDIS_URL:-redis://redis:6379/0}
+      # SENTRY_DSN vacío => Sentry deshabilitado (no-op). En producción, inyectar
+      # el DSN desde un secrets manager; no commitear secretos al repo.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    mem_limit: 3g  # 2 workers * ~1GB modelo + overhead Python/Django
+
+  celery-beat:
+    build: ./backend
+    restart: unless-stopped
+    # Nunca escalar >1 réplica: dos beats duplican la publicación de tareas periódicas.
+    command:
+      - /bin/sh
+      - -c
+      - >
+        celery -A exogram beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler --pidfile=/tmp/celerybeat.pid &
+        beat_pid=$$!;
+        while kill -0 "$$beat_pid" 2>/dev/null; do
+          touch /tmp/celerybeat.pid;
+          sleep 60;
+        done;
+        wait "$$beat_pid"
+    volumes:
+      - ./backend:/app
+      - ./models_cache:/app/models_cache
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=exogram.settings
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CELERY_BROKER_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import redis,os,time,sys; r=redis.from_url(os.environ.get('REDIS_URL','redis://redis:6379/0')); ts=r.get('celerybeat:heartbeat'); sys.exit(0 if ts and (time.time()-float(ts))<120 else 1)\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  flower:
+    image: mher/flower
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - celery --broker=$$REDIS_URL flower --port=5555
+    environment:
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - TZ=America/Argentina/Buenos_Aires
+    # Flower no trae auth por defecto. En producción: proteger detrás de proxy
+    # autenticado o reemplazar por observabilidad basada en métricas.
+    # El bind en 127.0.0.1 es una mitigación temporal.
+    ports:
+      - "127.0.0.1:5555:5555"
+    depends_on:
+      celery:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys;sys.exit(0 if urllib.request.urlopen('http://localhost:5555/healthcheck').getcode()==200 else 1)\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - ./CHANGELOG.md:/CHANGELOG.md:ro
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_DONATION_ALIAS=${VITE_DONATION_ALIAS:-}
+
+volumes:
+  postgres_data:
+  postal-config:
+  postal_db_data:
