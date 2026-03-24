@@ -19,6 +19,12 @@
 
 <p align="center">A social network for readers.</p>
 
+<p align="center">
+  <a href="https://youtu.be/3v862T1TxE4">
+    <img src="assets/demo.gif" alt="Exogram demo" width="700" />
+  </a>
+</p>
+
 ---
 
 ## What is Exogram
@@ -45,8 +51,11 @@ Just **readers** and what they underline.
 **Talk to readers nearby**  
 - Start a private thread with someone in your network based on a book you have in common. No public exposure, no large groups.
 
-**Control your privacy**  
+**Control your privacy**
 - Your notes are yours. You choose which highlights are public, which are private, and which are hidden but accessible by link. If you prefer to go unnoticed, hermit mode makes you invisible to the rest of the network.
+
+**Export your highlights**
+- Export any book as a standalone Markdown file, or export your entire library as an Obsidian vault with links between highlights and books already in place.
 
 ---
 
