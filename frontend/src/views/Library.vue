@@ -1090,7 +1090,7 @@ const formatConnectionMeta = (highlight) => {
 .connection-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-xs);
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-subtle);
   padding: var(--space-sm) var(--space-md);
