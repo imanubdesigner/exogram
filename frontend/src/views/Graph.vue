@@ -298,7 +298,7 @@
               {{ invitationStatusLabel(invited) }}
             </span>
           </div>
-          <p v-if="invited.created_user_nickname" class="reset-feedback">
+          <p v-if="invited.created_user_nickname && invited.created_user_must_change_credentials" class="reset-feedback">
             {{ i18n.t('graph.temp_user') }}: @{{ invited.created_user_nickname }}
           </p>
         </div>
