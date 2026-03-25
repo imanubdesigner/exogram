@@ -14,6 +14,7 @@ Uso:
     python manage.py create_root_user --email usuario@ejemplo.com --password contraseña_temporal
 """
 import secrets
+import smtplib
 import string
 
 from django.contrib.auth.models import User
@@ -83,9 +84,17 @@ class Command(BaseCommand):
                 'updated_at',
             ])
 
+        from accounts.emailing import send_root_user_credentials_email
+        try:
+            send_root_user_credentials_email(email=email, password=password)
+            email_status = self.style.SUCCESS('Email enviado correctamente.')
+        except (smtplib.SMTPException, OSError) as exc:
+            email_status = self.style.ERROR(f'No se pudo enviar el email: {exc}')
+
         self.stdout.write(self.style.SUCCESS('Usuario raíz creado exitosamente.'))
         self.stdout.write(f'  Email:      {email}')
         self.stdout.write(f'  Contraseña: {password}')
+        self.stdout.write(email_status)
         self.stdout.write(
             self.style.WARNING(
                 '  El usuario deberá definir su nickname y contraseña definitiva en el primer login.'

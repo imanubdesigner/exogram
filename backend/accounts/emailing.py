@@ -38,6 +38,36 @@ def send_invitation_email(*, invitation, raw_token):
     )
 
 
+def send_root_user_credentials_email(*, email, password):
+    """
+    Envía al usuario raíz recién creado sus credenciales temporales y
+    el enlace al login para que complete el onboarding.
+    """
+    login_url = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:5173').rstrip('/')
+
+    subject = 'Bienvenido a Exogram — tus credenciales de acceso'
+    body = (
+        f'Hola,\n\n'
+        f'Se creó una cuenta en Exogram para vos.\n\n'
+        f'Tus credenciales temporales son:\n'
+        f'  Email:      {email}\n'
+        f'  Contraseña: {password}\n\n'
+        f'Ingresá en:\n'
+        f'{login_url}\n\n'
+        f'Al iniciar sesión por primera vez se te pedirá que elijas un nickname '
+        f'y una contraseña definitiva.\n\n'
+        f'Si no esperabas este correo, podés ignorarlo.'
+    )
+
+    send_mail(
+        subject=subject,
+        message=body,
+        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@exogram.local'),
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
 def send_password_reset_email(*, user, reset_token, expires_at):
     """
     Envía correo de restablecimiento con enlace de un solo uso.
