@@ -38,7 +38,7 @@ def send_invitation_email(*, invitation, raw_token):
     )
 
 
-def send_root_user_credentials_email(*, email, password):
+def send_root_user_credentials_email(*, email, nickname, password):
     """
     Envía al usuario raíz recién creado sus credenciales temporales y
     el enlace al login para que complete el onboarding.
@@ -50,7 +50,7 @@ def send_root_user_credentials_email(*, email, password):
         f'Hola,\n\n'
         f'Se creó una cuenta en Exogram para vos.\n\n'
         f'Tus credenciales temporales son:\n'
-        f'  Email:      {email}\n'
+        f'  Nickname:   {nickname}\n'
         f'  Contraseña: {password}\n\n'
         f'Ingresá en:\n'
         f'{login_url}\n\n'

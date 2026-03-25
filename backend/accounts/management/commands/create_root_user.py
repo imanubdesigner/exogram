@@ -86,7 +86,7 @@ class Command(BaseCommand):
 
         from accounts.emailing import send_root_user_credentials_email
         try:
-            send_root_user_credentials_email(email=email, password=password)
+            send_root_user_credentials_email(email=email, nickname=placeholder, password=password)
             email_status = self.style.SUCCESS('Email enviado correctamente.')
         except (smtplib.SMTPException, OSError) as exc:
             email_status = self.style.ERROR(f'No se pudo enviar el email: {exc}')
