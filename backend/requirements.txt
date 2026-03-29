@@ -17,8 +17,8 @@ python-decouple==3.8
 # Pillow: corrige vulnerabilidades de seguridad
 Pillow==12.1.1
 pgvector==0.3.6
-# requests 2.32.x: corrige CVE-2024-35195 y CVE-2024-47081
-requests==2.32.5
+# requests 2.33.0: corrige CVE-2024-35195, CVE-2024-47081 y CVE-2026-25645
+requests==2.33.0
 
 # JWT para autenticación (corrige CVE-2024-22513)
 djangorestframework-simplejwt==5.5.1
