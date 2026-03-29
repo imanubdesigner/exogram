@@ -150,6 +150,16 @@ export const authService = {
     },
 
     /**
+     * Actualiza preferencias de visualización (fuente y ancho).
+     */
+    async updateDisplay(data) {
+        return apiRequest('/me/display/', {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        })
+    },
+
+    /**
      * Activa sincronización Goodreads y encola worker.
      */
     async activateGoodreads(goodreadsUsername) {

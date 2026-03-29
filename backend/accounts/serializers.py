@@ -56,6 +56,9 @@ class PrivateProfileSerializer(serializers.ModelSerializer):
             # Privacidad (editable)
             'is_hermit_mode', 'is_discoverable', 'comment_allowance_depth',
 
+            # Preferencias de visualización (editable)
+            'font_scale', 'content_max_width',
+
             # Metadata (solo lectura)
             'email', 'full_name', 'invited_by_nickname',
 
@@ -123,6 +126,23 @@ class PrivacySettingsSerializer(serializers.ModelSerializer):
     def validate_comment_allowance_depth(self, value):
         if value < 0 or value > 10:
             raise serializers.ValidationError('comment_allowance_depth debe estar entre 0 y 10')
+        return value
+
+
+class DisplayPreferencesSerializer(serializers.ModelSerializer):
+    """Para actualizar preferencias de visualización (fuente y ancho)."""
+    class Meta:
+        model = Profile
+        fields = ['font_scale', 'content_max_width']
+
+    def validate_font_scale(self, value):
+        if value < 0.85 or value > 1.3:
+            raise serializers.ValidationError('font_scale debe estar entre 0.85 y 1.3')
+        return round(value, 2)
+
+    def validate_content_max_width(self, value):
+        if value < 480 or value > 900:
+            raise serializers.ValidationError('content_max_width debe estar entre 480 y 900')
         return value
 
 

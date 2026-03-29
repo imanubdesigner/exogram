@@ -275,6 +275,53 @@
     </section>
 
 
+    <!-- Apariencia -->
+    <section class="profile-section">
+      <h3 class="section-label">{{ i18n.t('profile.display_title') }}</h3>
+
+      <div class="privacy-row">
+        <div class="privacy-label">
+          <div class="setting-text">
+            <span class="setting-title">{{ i18n.t('profile.font_scale_title') }}</span>
+            <span class="setting-desc">{{ i18n.t('profile.font_scale_desc') }}</span>
+          </div>
+        </div>
+        <div class="privacy-control display-slider-wrap">
+          <span class="slider-value">{{ fontScalePercent }}%</span>
+          <input
+            type="range"
+            class="display-slider"
+            v-model.number="fontScale"
+            min="0.85"
+            max="1.3"
+            step="0.05"
+            @change="saveDisplay"
+          />
+        </div>
+      </div>
+
+      <div class="privacy-row">
+        <div class="privacy-label">
+          <div class="setting-text">
+            <span class="setting-title">{{ i18n.t('profile.content_width_title') }}</span>
+            <span class="setting-desc">{{ i18n.t('profile.content_width_desc') }}</span>
+          </div>
+        </div>
+        <div class="privacy-control display-slider-wrap">
+          <span class="slider-value">{{ contentMaxWidth }}px</span>
+          <input
+            type="range"
+            class="display-slider"
+            v-model.number="contentMaxWidth"
+            min="480"
+            max="900"
+            step="20"
+            @change="saveDisplay"
+          />
+        </div>
+      </div>
+    </section>
+
     <!-- Donaciones -->
     <section v-if="donationAlias" class="profile-section">
       <h3 class="section-label">{{ i18n.t('profile.donate_title') }}</h3>
@@ -347,7 +394,12 @@ const deletingAccount = ref(false)
 
 const donationAlias = import.meta.env.VITE_DONATION_ALIAS || ''
 
+const fontScale = ref(1.0)
+const contentMaxWidth = ref(640)
+const savingDisplay = ref(false)
+
 const isBioDirty = computed(() => bio.value !== initialBio.value)
+const fontScalePercent = computed(() => Math.round(fontScale.value * 100))
 
 
 onMounted(async () => {
@@ -374,6 +426,8 @@ onMounted(async () => {
       commentAllowanceDepth.value = user.comment_allowance_depth !== undefined ? user.comment_allowance_depth : 2
       mustChangeCredentials.value = !!user.must_change_credentials
       initialBio.value = bio.value
+      fontScale.value = user.font_scale ?? 1.0
+      contentMaxWidth.value = user.content_max_width ?? 640
       if (mustChangeCredentials.value) {
         uiStore.showWarning(i18n.t('profile.feedback.must_change_prompt'))
       }
@@ -695,6 +749,28 @@ const handleDeleteAccount = async () => {
     logger.error('Error deleting account:', err)
     uiStore.showError(i18n.t('profile.feedback.delete_account_error'))
     deletingAccount.value = false
+  }
+}
+
+const saveDisplay = async () => {
+  savingDisplay.value = true
+  const previousScale = fontScale.value
+  const previousWidth = contentMaxWidth.value
+  authStore.applyDisplayPreferences(fontScale.value, contentMaxWidth.value)
+  try {
+    await authStore.updateDisplay({
+      font_scale: fontScale.value,
+      content_max_width: contentMaxWidth.value,
+    })
+    uiStore.showSuccess(i18n.t('profile.feedback.saved'))
+  } catch (err) {
+    logger.error('Error saving display preferences:', err)
+    fontScale.value = previousScale
+    contentMaxWidth.value = previousWidth
+    authStore.applyDisplayPreferences(previousScale, previousWidth)
+    uiStore.showError(i18n.t('profile.feedback.display_save_error'))
+  } finally {
+    savingDisplay.value = false
   }
 }
 
@@ -1509,5 +1585,58 @@ input:checked + .slider:before {
     justify-content: flex-end;
     gap: var(--space-sm);
   }
+}
+
+/* Display preferences */
+.display-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.slider-value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  min-width: 40px;
+  text-align: right;
+}
+
+.display-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100px;
+  height: 2px;
+  background: var(--border-medium);
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.display-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.display-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--text-primary);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.display-slider:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 4px;
 }
 </style>

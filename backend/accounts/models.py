@@ -376,6 +376,18 @@ class Profile(models.Model):
         help_text="0 = genesis/superuser. Calculado al crear el perfil."
     )
 
+    # Preferencias de visualización
+    font_scale = models.FloatField(
+        default=1.0,
+        verbose_name="Escala de fuente",
+        help_text="Multiplicador del tamaño de fuente base. Rango: 0.85–1.3."
+    )
+    content_max_width = models.IntegerField(
+        default=640,
+        verbose_name="Ancho máximo del contenido (px)",
+        help_text="Ancho máximo del contenedor principal. Rango: 480–900."
+    )
+
     # Legacy / Integrations
     goodreads_username = models.CharField(
         max_length=100,

@@ -67,6 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
         user.value = mergedUser
         authService.saveUser(userData)
+        applyDisplayPreferences(userData.font_scale, userData.content_max_width)
       } else {
         user.value = null
         sessionStorage.removeItem('auth_hint')
@@ -156,6 +157,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const updateDisplay = async (displayPreferences) => {
+    try {
+      const updated = await authService.updateDisplay(displayPreferences)
+      user.value = { ...user.value, ...updated }
+      applyDisplayPreferences(updated.font_scale, updated.content_max_width)
+      return updated
+    } catch (error) {
+      authError.value = error.message
+      throw error
+    }
+  }
+
+  const applyDisplayPreferences = (fontScale, contentMaxWidth) => {
+    const scale = fontScale ?? 1.0
+    const width = contentMaxWidth ?? 640
+    document.documentElement.style.fontSize = `${16 * scale}px`
+    document.documentElement.style.setProperty('--max-width-content', `${width}px`)
+  }
+
   const completeOnboarding = async () => {
     try {
       await authService.completeOnboarding()
@@ -220,6 +240,8 @@ export const useAuthStore = defineStore('auth', () => {
     fetchInvitationStats,
     updateProfile,
     updatePrivacy,
+    updateDisplay,
+    applyDisplayPreferences,
     completeOnboarding,
     exportData,
     getNetworkTree,

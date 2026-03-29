@@ -42,6 +42,7 @@ from .models import (
     build_password_reset_token_hash,
 )
 from .serializers import (
+    DisplayPreferencesSerializer,
     PrivacySettingsSerializer,
     PrivateProfileSerializer,
     ProfileUpdateSerializer,
@@ -946,6 +947,19 @@ class PrivacySettingsView(generics.UpdateAPIView):
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PrivacySettingsSerializer
+
+    def get_object(self):
+        return self.request.user.profile
+
+
+class DisplayPreferencesView(generics.UpdateAPIView):
+    """
+    Actualiza preferencias de visualización del usuario autenticado.
+
+    PATCH /api/me/display/
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = DisplayPreferencesSerializer
 
     def get_object(self):
         return self.request.user.profile
