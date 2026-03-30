@@ -28,7 +28,7 @@ onnxruntime==1.20.1
 numpy==1.26.4
 
 # Parser de fechas robusto
-python-dateutil==2.9.0
+python-dateutil==2.9.0.post0
 
 # RSS feed parsing (Goodreads sync)
 feedparser==6.0.12
@@ -38,10 +38,10 @@ beautifulsoup4==4.12.3
 scikit-learn==1.5.2
 
 # Multilingual ONNX tokenization
-tokenizers==0.21.0
+tokenizers==0.21.4
 
 # WSGI server (pinned — antes se instalaba suelto en Dockerfile)
 gunicorn==23.0.0
 
 # Test coverage reporting
-coverage==7.6.10
+coverage==7.6.12
