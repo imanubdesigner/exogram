@@ -51,7 +51,7 @@ scikit-learn>=1.5,<2
 # Parsing
 python-dateutil>=2.9,<3
 feedparser>=6,<7
-beautifulsoup4>=4.12,<5
+beautifulsoup4>=4.14.3,<5
 
 # Server
 gunicorn>=23,<24
