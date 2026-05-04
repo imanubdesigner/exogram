@@ -10,16 +10,10 @@ updates:
       time: "09:00"
       timezone: "America/Argentina/Buenos_Aires"
     # Only open PRs for security updates; bump limit avoids noise
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 50
     labels:
       - "dependencies"
       - "backend"
-    ignore:
-      # Ignore major updates as they usually require manual code changes
-      - dependency-name: "*"
-        update-types:
-          - "version-update:semver-major"
-
   # Node.js frontend dependencies
   - package-ecosystem: "npm"
     directory: "/frontend"
@@ -28,16 +22,10 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 50
     labels:
       - "dependencies"
       - "frontend"
-    ignore:
-      - dependency-name: "*"
-        update-types:
-          - "version-update:semver-minor"
-          - "version-update:semver-major"
-
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -46,7 +34,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 50
     labels:
       - "dependencies"
       - "ci"
