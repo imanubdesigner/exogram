@@ -54,7 +54,7 @@ soupsieve==2.8.3
 sqlparse==0.5.5
 sympy==1.14.0
 threadpoolctl==3.6.0
-tokenizers==0.21.4
+tokenizers==0.23.1
 tqdm==4.67.3
 typing-extensions==4.15.0
 tzdata==2026.1
