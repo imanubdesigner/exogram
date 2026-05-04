@@ -15,10 +15,9 @@ updates:
       - "dependencies"
       - "backend"
     ignore:
-      # Only auto-update patch versions; minor/major require manual review
+      # Ignore major updates as they usually require manual code changes
       - dependency-name: "*"
         update-types:
-          - "version-update:semver-minor"
           - "version-update:semver-major"
 
   # Node.js frontend dependencies
